@@ -1,2 +1,2 @@
 # Fraud-Detection
-Credit card fraud detection through anomaly detection algorithm using multivariate gaussian distribution in R.
+Credit card fraud detection using multivariate gaussian distribution in R. Performed feature analysis and created polynomial (quadratic) features to capture any correlation between the features. Data is divided into train/cross validation/test sets composed of 60/20/20 percent of the overall data and 0/50/50 percent of anamolous examples respectively. Cross Validation set is used to find the best epsilon so that p(x) < epsilon for an anomalous example and p(x) >= epsilon for normal example where p(x) is the independence assumption on the values of the features for a given example.
