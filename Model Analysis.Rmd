@@ -23,7 +23,7 @@ X <- fread(input = "creditcard.csv", sep = ",", header = T, showProgress = T)
 X <- data.frame(X)
 colnames(X)
 mA <- sum(as.numeric(X$Class))/nrow(X)
-mA*100
+sprintf('Percentage of fraudulent transactions in the data set %f', mA*100)
 ```
 
 It is evident that the data is highly skewed with only less than 0.2% of the transactions being fraud and the rest being legitimate. To do some exploratory analysis let us separate the normal and anomalous examples and find out how the features differ between the two datasets.
@@ -112,6 +112,10 @@ prediction <- as.numeric(ptest < epsilon)
 confusionMatrix(table(Xtest[,16], prediction), positive = levels(factor(Xtest[,16]))[2])
 ```
 
-As we can see that the model predicted a positive prediction rate of about 87% and negative prediction rate of 95% where the positive class being a fraudlent transaction. 
+As we can see that the model predicted a positive prediction rate of about 87% and negative prediction rate of 95% where the positive class being fraudulent transaction. 
+
+## 7. Model Analysis
+
+
 
 
