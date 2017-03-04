@@ -114,6 +114,4 @@ confusionMatrix(table(Xtest[,16], prediction), positive = levels(factor(Xtest[,1
 
 As we can see that the model predicted a positive prediction rate of about 87% and negative prediction rate of 95% where the positive class being a fraudlent transaction. 
 
-## 7. Conclusion
 
-## 8. Next Steps
