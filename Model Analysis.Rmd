@@ -106,7 +106,7 @@ min(pcv)
 range(pcv[pcv>0])
 ```
 
-It turns out that the range of estimated probabilities are very wide and could be difficult for us to find the optimum threshold value with in a resonable number of iterations. To solve this let's apply a log function and narrow the range. Also, replacing zeros in the original probabilities with the next higher value to avoid blowing up the log function.
+It turns out that the range of estimated probabilities are very wide and could be difficult for us to find the optimum threshold value with in a resonable number of iterations. To solve this let's apply a log function and narrow the range. Also, replacing zeros in the original probabilities with the next higher value to avoid numerical instability.
 
 ```{r epsilon, echo=TRUE}
 pcv[pcv==0] <- min(pcv[pcv>0])
