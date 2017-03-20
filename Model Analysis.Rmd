@@ -148,16 +148,14 @@ As we can see the cross validation set got a precision of 71% and recall of abou
 
 ## 7. Model Analysis
 
-Let's now find out why the model is classifying lot of false positives and false negatives. Since we classified an example as positive class when the calculated probability is less than epsilon, clearly there must be lot of negative examples that has probability less than epsilon (false positives) and positive examples that has probability greater than epsilon (false negatives). Let's focus on the false positive cases and see why the calculated probabilities of these legitimate transactions are below the threshold value. 
+Let's now find out why the model is classifying so many false positives and false negatives. Since we classified an example as positive class when the calculated probability is less than epsilon, clearly there must be lot of negative examples that has probability less than epsilon (false positives) and positive examples that has probability greater than epsilon (false negatives). Let's focus on the false positive cases and see why the calculated probabilities of these legitimate transactions are below the threshold value. 
 
 ```{r model analysis, echo=TRUE}
 min(ptest)
 sum(names(ptest[ptest==min(ptest)]) %in% rownames(X[X$Class==0,]))
 ```
 
-Surprisingly, there are 10 records with the least probability in the test set that are not anomalous but are classified as such given the epsilon value of -219. This means that irrespective of the selected threshold value, the model could never classify these examples as negative. By definition of the anomaly detection algorithm, by calculating the independence assumption of the features, it tend to be the case that the model estimates a low probability when the features take on some extreme value (independently) for an anomalous example and a higher probability when they do not, typically for a normal example.
+Surprisingly, there are 10 records with the least probability in the test set that are not anomalous but are classified as such given the epsilon value of -219. This means that irrespective of the selected threshold value, the model could never classify these examples as negative. By definition of our algorithm, in calculating the independence assumption of the features, it tend to be the case that the model estimates a low probability when the features take on some extreme value for an anomalous example and a higher probability when they do not, typically for a normal example.
 
 In the next section, we will see how the features vary by the Class variable to get a better understanding of how they are distributed.
-
-
 
