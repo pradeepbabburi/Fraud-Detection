@@ -17,10 +17,11 @@ library(PRROC)
 source('selectThreshold.R')
 ```
 ## 1. Introduction
-Credit Card fraud identificatioin through anomaly detection algorithm using multivariate gaussian distribution. There are couple of reasons why I wanted to employ the anomaly detection algorithm over logistic regression or SVM. One, for the anomaly detection algorithm is well suited for highly skewed data like fraud detection and two that it is not biased towards posterior probabilites of the events. Another advantage is that it is relatively easy to train, infact there is not much training at all in an anomaly detection algorithm (other than finding the best threshold probability). However, it has to be noted that for an anomaly detection to work well, we have to assume that the underlying features are independent. 
+Credit card fraud identification through anomaly detection algorithm using multivariate Gaussian distribution. There are couple of reasons why I wanted to employ the anomaly detection algorithm over logistic regression or SVM. One, for the anomaly detection algorithm is well suited for highly skewed data like fraud detection and two that it is least biased towards posterior probabilites of the events. Another advantage is that it is relatively easy to train, infact there is not much training at all in this algorithm (other than finding the optimum threshold probability). However, it has to be noted that for the model to work well, the underlying features need to be independent. 
 
 ## 2. Get Dataset
-Loading the credit card transactional data into the R environmet using "fread" from data.table library. The data has 28 variables/features which are the principal components of the original data. In addition, the data also contains Amount involved in the transaction, as well as Time and the Class variables indicating if a transaction is fraud (positive case = 1) or not (negative case = 0). 
+Loading the credit card transactional data into the R environmet using "fread" from data.table library. The data has 28 variables/features which are the principal components of the original data. The Class variable indicates if a transaction is fraud (positive case = 1) or genuine (negative case = 0).
+
 ```{r read data, echo=TRUE}
 X <- fread(input = "creditcard.csv", sep = ",", header = T, showProgress = T)
 X <- data.frame(X)
@@ -54,7 +55,8 @@ It is obvious that the mean value of some of the features for anomalous examples
 
 ## 4. Feature Engineering
 
-Incidentally, let's ignore the features that aren't of much interest and simplify the dataset for further analysis and training. 
+Incidentally, let's ignore the features that aren't of much interest and simplify the dataset for further analysis and training. Also plotting the histogram and density curves to check how the features are distributed, formally they should be close to Gaussian distribution.
+
 ```{r features, echo=TRUE}
 # drop features that are trivial
 todrop <- paste("V", c(8, 13, 15, 19:28), sep = "")
@@ -83,7 +85,7 @@ Xtest <- data.matrix(rbind(Xgood[g[(lg*0.8+1):lg],-c(1,17)], Xanom[a[(la*0.5+1):
 Xcv <- Xcv[sample(nrow(Xcv), nrow(Xcv), replace = F),]
 Xtest <- Xtest[sample(nrow(Xtest), nrow(Xtest), replace = F),]
 # clear variables that are not required
-rm(list = c("a", "g", "la", "lg", "todrop"))
+rm(list = c("a", "g", "la", "lg"))
 ```
 
 ## 5. Model Formulation
@@ -97,7 +99,7 @@ sigma <- cov(Xtrain[,-class])               # covariance matrix of all features
 #sigma <- diag(sigma)                      # assuming all the features are uncorrelated
 ```
 
-Calculating the pdf of all examples in the cross validation set using the mean and covariance from the training set. The function "selectThreshold" takes the ground truth positive and negative examples and the calculated probabilities to find the optimum threshold that best separates the classes. The function iterates through many values in "pcv" calculating the F1 score from precision and recall for each value thus finally selecting an optimum pcv that has the highest F1 score. 
+Calculating the pdf of all examples in the cross validation set using the mean and covariance from the training set. The function "selectThreshold" takes the ground truth positive and negative examples and the calculated probabilities to find the optimum threshold that best separates the classes. The function iterates through many values in "pcv" calculating the F1 score from precision and recall for each value thus finally selecting an optimum pcv that has the highest F1 score.
 
 ```{r mvgaussian, echo=TRUE}
 # find the pdf on cross validation set
@@ -148,14 +150,36 @@ As we can see the cross validation set got a precision of 71% and recall of abou
 
 ## 7. Model Analysis
 
-Let's now find out why the model is classifying so many false positives and false negatives. Since we classified an example as positive class when the calculated probability is less than epsilon, clearly there must be lot of negative examples that has probability less than epsilon (false positives) and positive examples that has probability greater than epsilon (false negatives). Let's focus on the false positive cases and see why the calculated probabilities of these legitimate transactions are below the threshold value. 
+Let's now find out why the model is classifying lot of false positives and false negatives. Since we classified an example as positive class when the calculated probability is less than epsilon, clearly there must be lot of negative examples that has probability less than epsilon (false positives) and positive examples that has probability greater than epsilon (false negatives). Let's focus on the false positive cases and see why the calculated probabilities of these legitimate transactions are below the threshold value.
 
 ```{r model analysis, echo=TRUE}
 min(ptest)
 sum(names(ptest[ptest==min(ptest)]) %in% rownames(X[X$Class==0,]))
 ```
 
-Surprisingly, there are 10 records with the least probability in the test set that are not anomalous but are classified as such given the epsilon value of -219. This means that irrespective of the selected threshold value, the model could never classify these examples as negative. By definition of our algorithm, in calculating the independence assumption of the features, it tend to be the case that the model estimates a low probability when the features take on some extreme value for an anomalous example and a higher probability when they do not, typically for a normal example.
+Surprisingly, there are 10 records with the least probability in the test set that are not anomalous but are classified as such given the epsilon value of -219. This means that irrespective of the selected threshold value, the model could never classify these examples as negative. By definition of our algorithm, by calculating the independence assumption of the features, it tend to be the case that the model estimates a low probability when the features take on some extreme value for an anomalous example and a higher probability when they do not, typically for a normal example.
 
 In the next section, we will see how the features vary by the Class variable to get a better understanding of how they are distributed.
 
+Since we are interested in the extreme values, our goal is to find records that have taken feature values beyond at least 2 standard deviations from the mean. More formally, we are going to find the confidence intervals (98% would give us little more than 2 standard deviations) and feature values that fall outside of the interval. Let's also plot these extreme values for few features and see how they span for each class.
+
+```{r plot extremes, echo=TRUE}
+X[, todrop] <- NULL
+# find confidence intervals of all the features
+ci <- apply(X[,-c(1, 17, 18)], 2, function(a) { mean(a) + c(-1,1)*qnorm(0.98)*sd(a) })
+
+# find examples that fall outside the ci
+extremes <- list()
+tmp <- names(X)[grepl("V", names(X))]
+for (i in tmp) {
+  extremes[[i]] <- rownames(X[X[, i] < ci[1, i] | X[, i] > ci[2, i],])
+}
+par(mfrow=c(2,2))
+# plot features
+with(X[extremes$V1,], plot(Class, V1))
+with(X[extremes$V4,], plot(Class, V4))
+with(X[extremes$V7,], plot(Class, V7))
+with(X[extremes$V10,], plot(Class, V10))
+```
+
+Contrary to what we ideally want, it turns out that there are lot of negative examples whose feature values are beyond 2 standard deviations from the mean which explains the cause for predicting lot of false positives. In addition, the plot also shows that the range of feature values for positive examples are either close or with in the range of negative examples rendering the features inadequate to classify the positive and negative examples better. One method to solve this problem is to choose features or even engineer new features from the original ones that tend to take unusually large or small values in the event of an anomaly.
